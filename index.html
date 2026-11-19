@@ -1,9 +1,124 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="refresh" content="0; url=welcome.html" />
-</head>
-<body>
-  <p>Redirecting to <a href="welcome.html">welcome.html</a>...</p>
-</body>
-</html>
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark"><title>AmbientClock · Gallery</title>
+<meta name="description" content="Fifteen animated AmbientClock wallpaper clocks. Open any scene to watch the live design.">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7e7e9;background:#070f15}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;}
+body{min-height:100vh;overflow:auto;
+background:radial-gradient(ellipse 72% 65% at 48% 42%,#142a37 0%,#08151d 53%,#03080c 100%)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 65px,rgba(117,177,182,.018) 66px 67px);opacity:.9}
+main{width:min(1180px,94vw);margin:0 auto;padding:48px 0 56px;position:relative}
+header{text-align:center;margin-bottom:8px}
+.eyebrow,.k{font-size:10px;font-weight:650;letter-spacing:.42em;color:#83bbc1}
+h1{margin:8px 0 8px;font-size:clamp(42px,6.5vw,76px);font-weight:200;letter-spacing:.085em;line-height:1}
+.sub{color:#9bafb7;font-size:14px;line-height:1.6;margin:12px auto 0;max-width:550px}
+.sub a{color:#d7e9e8}
+.orbit{height:130px;display:grid;place-items:center;position:relative;margin:2px 0 12px}
+.orbit:before,.orbit:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(143,204,204,.16);width:118px;height:118px}
+.orbit:after{width:93px;height:93px;border-color:rgba(172,204,176,.20);box-shadow:0 0 40px rgba(99,172,164,.06)}
+.hand{position:absolute;width:2px;height:39px;top:27px;left:calc(50% - 1px);background:linear-gradient(to top,#cdf0ed,#5eabb6);transform-origin:50% 38px;border-radius:3px;box-shadow:0 0 10px rgba(156,239,233,.28)}
+.minute{height:50px;top:16px;transform-origin:50% 50px;background:linear-gradient(to top,#9cbebc,#e4ffff)}
+.dot{position:relative;width:7px;height:7px;background:#e6fbf5;border-radius:50%;z-index:1;box-shadow:0 0 12px #7beedc}
+#localtime{font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:.25em;color:#b1ced1;margin-top:11px;text-align:center}
+.group{margin:34px 0 14px}
+.group h2{font-size:22px;font-weight:450;letter-spacing:.04em;margin:8px 0 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.card{position:relative;padding:12px 12px 16px;border:1px solid #273d47;background:rgba(9,23,31,.60);border-radius:14px}
+.card:has(.hit:hover){border-color:#3d6572;background:rgba(12,32,42,.78)}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:#03080c;container-type:inline-size}
+.stage iframe{position:absolute;top:0;left:0;width:1600px;height:900px;border:0;transform-origin:0 0;transform:scale(calc(100cqw / 1600px));pointer-events:none;background:#03080c}
+.meta{padding:14px 6px 0}
+.meta h3{font-size:16px;font-weight:500;margin:0 0 8px}
+code,.chip{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,monospace;font-size:12px;color:#d7e9e8;background:#142d36;border:1px solid #294651;border-radius:6px;padding:5px 7px;display:inline-block}
+.hit{position:absolute;inset:0;border:0;padding:0;background:transparent;border-radius:14px;cursor:pointer}
+.hit:focus-visible{outline:2px solid #8ec5c4;outline-offset:3px}
+footer{text-align:center;margin-top:28px;color:#607982;letter-spacing:.16em;font-size:11px}
+footer a{color:#83bbc1;text-decoration:none}
+dialog{width:min(1440px,calc(100vw - 28px));height:min(900px,calc(100vh - 28px));max-width:calc(100vw - 28px);max-height:calc(100vh - 28px);margin:auto;padding:0;border:1px solid #273d47;border-radius:16px;background:#071018;color:#e7e7e9;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+dialog[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:rgba(3,8,12,.82)}
+.viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid #273d47}
+.viewer-bar h2{font-size:16px;font-weight:500;margin:6px 0 0}
+.viewer-actions{display:flex;gap:8px;flex:none}
+.viewer-actions a,.viewer-actions button{font:inherit;font-size:11px;letter-spacing:.12em;color:#d7e9e8;background:#142d36;border:1px solid #294651;border-radius:6px;padding:8px 10px;text-decoration:none;cursor:pointer}
+.viewer-actions a:hover,.viewer-actions button:hover{border-color:#3d6572}
+#viewer-frame{flex:1;width:100%;border:0;background:#03080c}
+@media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:660px){main{padding:20px 0 36px}.grid{grid-template-columns:1fr}.orbit{height:104px}.orbit:before{height:100px;width:100px}.orbit:after{height:84px;width:84px}.hand{top:19px}.minute{top:8px}.viewer-bar{align-items:flex-start;flex-direction:column}}
+</style></head><body><main>
+<header><div class="eyebrow">THE COLLECTION</div><h1>AMBIENT<span style="color:#8ec5c4">CLOCK</span></h1>
+<p class="sub">Fifteen animated wallpaper clocks, in two collections. Open any scene to watch the live design. Setup stays on the <a href="welcome.html">welcome page</a>.</p></header>
+<div class="orbit" aria-hidden="true"><div class="hand" id="hr"></div><div class="hand minute" id="mn"></div><div class="dot"></div></div>
+<div id="localtime" aria-label="Local time"></div>
+
+<section aria-labelledby="retro-title">
+<div class="group"><div class="k">COLLECTION 01</div><h2 id="retro-title">Retro-Futurist</h2></div>
+<div class="grid">
+<article class="card" data-src="collections/retro-futurist/01-Synthwave-Neon-Horizon-Final/index.html" data-title="Neon Horizon — Synthwave" data-group="Retro-Futurist" data-id="synthwave"><div class="stage"><iframe title="Neon Horizon — Synthwave" src="collections/retro-futurist/01-Synthwave-Neon-Horizon-Final/index.html"></iframe></div><div class="meta"><h3>Neon Horizon — Synthwave</h3><code>synthwave</code></div><button class="hit" type="button" aria-label="View Neon Horizon — Synthwave"></button></article>
+<article class="card" data-src="collections/retro-futurist/02-Metropolis-Classic/index.html" data-title="Metropolis — Classic" data-group="Retro-Futurist" data-id="metropolis"><div class="stage"><iframe title="Metropolis — Classic" src="collections/retro-futurist/02-Metropolis-Classic/index.html"></iframe></div><div class="meta"><h3>Metropolis — Classic</h3><code>metropolis</code></div><button class="hit" type="button" aria-label="View Metropolis — Classic"></button></article>
+<article class="card" data-src="collections/retro-futurist/03-Metropolis-Abyssal/index.html" data-title="Metropolis — Abyssal" data-group="Retro-Futurist" data-id="metropolis-abyssal"><div class="stage"><iframe title="Metropolis — Abyssal" src="collections/retro-futurist/03-Metropolis-Abyssal/index.html"></iframe></div><div class="meta"><h3>Metropolis — Abyssal</h3><code>metropolis-abyssal</code></div><button class="hit" type="button" aria-label="View Metropolis — Abyssal"></button></article>
+<article class="card" data-src="collections/retro-futurist/04-Chronotron-Classic/index.html" data-title="Chronotron — Classic" data-group="Retro-Futurist" data-id="chronotron"><div class="stage"><iframe title="Chronotron — Classic" src="collections/retro-futurist/04-Chronotron-Classic/index.html"></iframe></div><div class="meta"><h3>Chronotron — Classic</h3><code>chronotron</code></div><button class="hit" type="button" aria-label="View Chronotron — Classic"></button></article>
+<article class="card" data-src="collections/retro-futurist/05-Chronotron-Atomic-Wasteland/index.html" data-title="Chronotron — Atomic Wasteland" data-group="Retro-Futurist" data-id="chronotron-fallout"><div class="stage"><iframe title="Chronotron — Atomic Wasteland" src="collections/retro-futurist/05-Chronotron-Atomic-Wasteland/index.html"></iframe></div><div class="meta"><h3>Chronotron — Atomic Wasteland</h3><code>chronotron-fallout</code></div><button class="hit" type="button" aria-label="View Chronotron — Atomic Wasteland"></button></article>
+<article class="card" data-src="collections/retro-futurist/06-Starliner-07-Classic/index.html" data-title="Starliner 07 — Classic" data-group="Retro-Futurist" data-id="starliner"><div class="stage"><iframe title="Starliner 07 — Classic" src="collections/retro-futurist/06-Starliner-07-Classic/index.html"></iframe></div><div class="meta"><h3>Starliner 07 — Classic</h3><code>starliner</code></div><button class="hit" type="button" aria-label="View Starliner 07 — Classic"></button></article>
+<article class="card" data-src="collections/retro-futurist/07-Starliner-07-Derelict/index.html" data-title="Starliner 07 — Derelict" data-group="Retro-Futurist" data-id="starliner-derelict"><div class="stage"><iframe title="Starliner 07 — Derelict" src="collections/retro-futurist/07-Starliner-07-Derelict/index.html"></iframe></div><div class="meta"><h3>Starliner 07 — Derelict</h3><code>starliner-derelict</code></div><button class="hit" type="button" aria-label="View Starliner 07 — Derelict"></button></article>
+<article class="card" data-src="collections/retro-futurist/08-Black-Hole-Original/index.html" data-title="Event Horizon — Original" data-group="Retro-Futurist" data-id="blackhole"><div class="stage"><iframe title="Event Horizon — Original" src="collections/retro-futurist/08-Black-Hole-Original/index.html"></iframe></div><div class="meta"><h3>Event Horizon — Original</h3><code>blackhole</code></div><button class="hit" type="button" aria-label="View Event Horizon — Original"></button></article>
+<article class="card" data-src="collections/retro-futurist/09-Black-Hole-V2-Final/index.html" data-title="Event Horizon — V2" data-group="Retro-Futurist" data-id="blackhole-v2"><div class="stage"><iframe title="Event Horizon — V2" src="collections/retro-futurist/09-Black-Hole-V2-Final/index.html"></iframe></div><div class="meta"><h3>Event Horizon — V2</h3><code>blackhole-v2</code></div><button class="hit" type="button" aria-label="View Event Horizon — V2"></button></article>
+</div></section>
+
+<section aria-labelledby="quiet-title">
+<div class="group"><div class="k">COLLECTION 02</div><h2 id="quiet-title">Quiet Worlds</h2></div>
+<div class="grid">
+<article class="card" data-src="collections/quiet-worlds/01-Forest-Canopy/index.html" data-title="Forest Canopy" data-group="Quiet Worlds" data-id="forest"><div class="stage"><iframe title="Forest Canopy" src="collections/quiet-worlds/01-Forest-Canopy/index.html"></iframe></div><div class="meta"><h3>Forest Canopy</h3><code>forest</code></div><button class="hit" type="button" aria-label="View Forest Canopy"></button></article>
+<article class="card" data-src="collections/quiet-worlds/02-Nebula-Drift/index.html" data-title="Nebula Drift" data-group="Quiet Worlds" data-id="nebula"><div class="stage"><iframe title="Nebula Drift" src="collections/quiet-worlds/02-Nebula-Drift/index.html"></iframe></div><div class="meta"><h3>Nebula Drift</h3><code>nebula</code></div><button class="hit" type="button" aria-label="View Nebula Drift"></button></article>
+<article class="card" data-src="collections/quiet-worlds/03-Alpine-Trail/index.html" data-title="Alpine Trail" data-group="Quiet Worlds" data-id="alpine"><div class="stage"><iframe title="Alpine Trail" src="collections/quiet-worlds/03-Alpine-Trail/index.html"></iframe></div><div class="meta"><h3>Alpine Trail</h3><code>alpine</code></div><button class="hit" type="button" aria-label="View Alpine Trail"></button></article>
+<article class="card" data-src="collections/quiet-worlds/04-Ocean-Tide/index.html" data-title="Ocean Tide" data-group="Quiet Worlds" data-id="ocean"><div class="stage"><iframe title="Ocean Tide" src="collections/quiet-worlds/04-Ocean-Tide/index.html"></iframe></div><div class="meta"><h3>Ocean Tide</h3><code>ocean</code></div><button class="hit" type="button" aria-label="View Ocean Tide"></button></article>
+<article class="card" data-src="collections/quiet-worlds/05-Aurora-Night/index.html" data-title="Aurora Night" data-group="Quiet Worlds" data-id="aurora"><div class="stage"><iframe title="Aurora Night" src="collections/quiet-worlds/05-Aurora-Night/index.html"></iframe></div><div class="meta"><h3>Aurora Night</h3><code>aurora</code></div><button class="hit" type="button" aria-label="View Aurora Night"></button></article>
+<article class="card" data-src="collections/quiet-worlds/06-Rainy-Window/index.html" data-title="Rainy Window" data-group="Quiet Worlds" data-id="rain"><div class="stage"><iframe title="Rainy Window" src="collections/quiet-worlds/06-Rainy-Window/index.html"></iframe></div><div class="meta"><h3>Rainy Window</h3><code>rain</code></div><button class="hit" type="button" aria-label="View Rainy Window"></button></article>
+</div></section>
+
+<footer>RETRO-FUTURIST &nbsp;·&nbsp; QUIET WORLDS &nbsp;·&nbsp; 15 DESIGNS<br><a href="welcome.html">WELCOME PAGE</a></footer>
+</main>
+
+<dialog id="viewer" aria-labelledby="viewer-title">
+<div class="viewer-bar">
+<div><div class="k" id="viewer-k">COLLECTION</div><h2 id="viewer-title">Clock</h2></div>
+<div class="viewer-actions"><a id="viewer-open" href="welcome.html" target="_blank" rel="noopener">OPEN PAGE</a><button id="viewer-close" type="button">CLOSE</button></div>
+</div>
+<iframe id="viewer-frame" title="Wallpaper"></iframe>
+</dialog>
+
+<script>
+(function(){
+  var hr=document.getElementById('hr'), mn=document.getElementById('mn'), out=document.getElementById('localtime');
+  function render(){
+    var d=new Date(), sec=d.getSeconds()+d.getMilliseconds()/1000;
+    hr.style.transform='rotate('+((d.getHours()%12+d.getMinutes()/60)*30)+'deg)';
+    mn.style.transform='rotate('+((d.getMinutes()+sec/60)*6)+'deg)';
+    out.textContent=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
+  }
+  render(); setInterval(render,1000);
+
+  var dialog=document.getElementById('viewer');
+  var frame=document.getElementById('viewer-frame');
+  var openLink=document.getElementById('viewer-open');
+  document.querySelectorAll('.card').forEach(function(card){
+    card.querySelector('.hit').addEventListener('click', function(){
+      document.getElementById('viewer-k').textContent=card.dataset.group.toUpperCase();
+      document.getElementById('viewer-title').textContent=card.dataset.title;
+      openLink.href=card.dataset.src;
+      frame.title=card.dataset.title;
+      frame.src=card.dataset.src;
+      dialog.showModal();
+    });
+  });
+  document.getElementById('viewer-close').addEventListener('click', function(){ dialog.close(); });
+  dialog.addEventListener('click', function(e){
+    var rect=dialog.getBoundingClientRect();
+    var inside=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom;
+    if(!inside) dialog.close();
+  });
+  dialog.addEventListener('close', function(){ frame.removeAttribute('src'); });
+})();
+</script></body></html>

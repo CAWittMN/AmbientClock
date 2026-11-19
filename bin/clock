@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 ROOT="${AMBIENT_CLOCK_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 ACTIVE="$ROOT/index.html"
 STATE="$ROOT/.clock-current"
+BACKUP="$ROOT/.backup/index.html"
 
 # ----------------- Explicit catalog: no folder autodiscovery ----------------
 RETRO_IDS=(
@@ -80,6 +81,32 @@ source_for() {
   local path="$ROOT/collections/$( [ "$COLLECTION" = retro ] && echo retro-futurist || echo quiet-worlds )/$FOLDER/index.html"
   [ -f "$path" ] || return 1
   printf '%s\n' "$path"
+}
+
+in_work_tree() {
+  git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+index_is_tracked() {
+  in_work_tree && git -C "$ROOT" ls-files --error-unmatch -- index.html >/dev/null 2>&1
+}
+# Local wallpapers stay out of commits. `clock update` clears this before pulling.
+mark_index_local() {
+  index_is_tracked || return 0
+  git -C "$ROOT" update-index --skip-worktree -- index.html
+}
+unmark_index_local() {
+  index_is_tracked || return 0
+  git -C "$ROOT" update-index --no-skip-worktree -- index.html
+}
+replace_active() {
+  local source="$1" tmp
+  tmp="$(mktemp "$ROOT/.clock-switch.XXXXXX")"
+  if ! cp "$source" "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$ACTIVE"
 }
 
 reload_plash() {
@@ -148,7 +175,7 @@ show_list() {
 }
 
 use_clock() {
-  local id="$1" source tmp
+  local id="$1" source
   clock_meta "$id" || { printf 'Unknown clock: %s\n' "$id" >&2; return 2; }
   source="$(source_for "$id" || true)"
   if [ -z "$source" ]; then
@@ -156,16 +183,92 @@ use_clock() {
     return 1
   fi
   # Atomic replacement: Plash never sees a half-written HTML document.
-  tmp="$(mktemp "$ROOT/.clock-switch.XXXXXX")"
-  trap 'rm -f "$tmp"' EXIT
-  cp "$source" "$tmp"
-  chmod 644 "$tmp"
-  mv -f "$tmp" "$ACTIVE"
-  trap - EXIT
+  replace_active "$source"
   printf '%s\n' "$id" > "$STATE"
+  mark_index_local
   clock_meta "$id"
   printf 'Selected: %s / %s\n' "$(collection_title "$COLLECTION")" "$DISPLAY"
   reload_plash
+}
+
+# Fast-forward main without losing the wallpaper named in .clock-current.
+update_repo() {
+  local saved id dirty
+  if ! in_work_tree; then
+    printf 'clock update could not find a git repo at:\n  %s\n' "$ROOT" >&2
+    printf 'It uses the AmbientClock checkout the clock command belongs to, so you can run it from any directory.\n' >&2
+    return 1
+  fi
+  if [ "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)" != "main" ]; then
+    printf 'clock update fast-forwards main. Checkout main, then run it again.\n' >&2
+    return 1
+  fi
+  if ! git -C "$ROOT" fetch --quiet origin main; then
+    printf 'Could not fetch origin/main.\n' >&2
+    return 1
+  fi
+  if ! git -C "$ROOT" rev-parse --verify --quiet origin/main >/dev/null; then
+    printf 'origin/main is not available.\n' >&2
+    return 1
+  fi
+  if git -C "$ROOT" merge-base --is-ancestor origin/main HEAD; then
+    printf 'Already up to date with origin/main.\n'
+    return 0
+  fi
+  if ! git -C "$ROOT" merge-base --is-ancestor HEAD origin/main; then
+    printf 'This checkout has diverged from origin/main. clock update only fast-forwards.\n' >&2
+    return 1
+  fi
+  dirty="$(git -C "$ROOT" status --porcelain --untracked-files=no)"
+  if [ -n "$dirty" ]; then
+    printf 'Commit or stash other local changes before clock update.\n' >&2
+    printf '%s\n' "$dirty" >&2
+    return 1
+  fi
+
+  # Remember the id only. After the pull, use_clock copies that design's
+  # current collection file, which may have changed in the update.
+  saved=""
+  if [ -f "$STATE" ]; then
+    saved="$(tr -d '[:space:]' < "$STATE")"
+  else
+    saved="$(active_id || true)"
+  fi
+
+  unmark_index_local
+  if [ -f "$BACKUP" ]; then
+    replace_active "$BACKUP"
+    printf 'Restored index.html from .backup.\n'
+  fi
+  if index_is_tracked && ! git -C "$ROOT" diff --quiet -- index.html; then
+    git -C "$ROOT" checkout -- index.html
+    printf 'Backup did not match the last commit, so the committed gallery was restored.\n'
+  fi
+  if ! git -C "$ROOT" merge --ff-only --quiet origin/main; then
+    printf 'Update failed. Restoring your wallpaper.\n' >&2
+    if [ -n "$saved" ] && id="$(canonical_id "$saved")"; then
+      use_clock "$id" || true
+    fi
+    return 1
+  fi
+
+  mkdir -p "$ROOT/.backup"
+  cp "$ACTIVE" "$BACKUP"
+  printf 'Fast-forwarded to origin/main.\n'
+  # The command is a symlink to bin/clock, so the pull already updates it.
+  # Warn if this machine runs a copy or a link from another checkout.
+  if [ ! -L "$HOME/.local/bin/clock" ] || [ "$(readlink "$HOME/.local/bin/clock")" != "$ROOT/bin/clock" ]; then
+    printf 'Note: ~/.local/bin/clock is not linked to this checkout. Run: bash %s/install.sh\n' "$ROOT" >&2
+  fi
+  if [ -z "$saved" ]; then
+    printf 'No saved wallpaper, so the gallery stays active.\n'
+    return 0
+  fi
+  if ! id="$(canonical_id "$saved")"; then
+    printf 'Updated, but .clock-current has an unknown clock: %s\n' "$saved" >&2
+    return 1
+  fi
+  use_clock "$id"
 }
 
 choose_collection() {
@@ -228,6 +331,7 @@ AmbientClock — animated wallpapers for Plash
   clock list                List all curated clocks
   clock current             Show the currently selected clock
   clock reload              Ask Plash to reload the wallpaper
+  clock update              Fast-forward main from any directory, then reapply your clock id
   clock preview <name>      Open a design in your default browser
   clock help                Show this help
 
@@ -240,6 +344,7 @@ Quick picks:
 
 Aliases: bioshock, fallout, horror, galaxy, lighthouse, gargantua, etc.
 The catalog is explicitly defined in bin/clock (not scanned from folders).
+Every command, including update, finds this repo from the clock script.
 HELP
 }
 
@@ -269,6 +374,7 @@ case "$command_name" in
   list|ls) show_list ;;
   current|status) show_current ;;
   reload) reload_plash ;;
+  update) update_repo ;;
   preview)
     if [ "$#" -lt 2 ]; then printf 'Usage: clock preview <name>\n' >&2; exit 2; fi
     shift
