@@ -1,0 +1,17 @@
+# Plash always loads this active file, rewritten by `clock use`.
+# The tracked welcome.html recreates it on first install.
+/index.html
+/.clock-current
+/.clock-switch.*
+
+# macOS and editor artifacts
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local log/debug/output artifacts
+*.log

@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#09071a">
+<title>Neon Horizon • v13 — Matched Mountain Mesh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {color-scheme:dark}
+  * {box-sizing:border-box}
+  html,body {width:100%;height:100%;margin:0;overflow:hidden;background:#050411}
+  body {font-family:Orbitron,Eurostile,"Trebuchet MS",sans-serif;color:#fff0ff;-webkit-font-smoothing:antialiased}
+  .scene {position:relative;width:100vw;height:100vh;overflow:hidden;isolation:isolate;
+    background:radial-gradient(ellipse at 50% 48%,#40164e 0%,#1b0d30 42%,#070719 76%,#03040e 100%)}
+  .sky {position:absolute;z-index:0;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,#060919 0%,#100d27 17%,#291438 37%,#542043 55%,#973855 75%,#d25c74 91%,#c7566a 100%)}
+  .aura {position:absolute;z-index:0;left:50%;top:37.5%;width:min(108vh,79vw);aspect-ratio:1;
+    transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,70,155,.23),rgba(179,46,163,.13) 32%,rgba(97,31,157,.055) 58%,transparent 74%);
+    filter:blur(34px);animation:skyBreath 25s ease-in-out infinite alternate;pointer-events:none}
+  @keyframes skyBreath {from{opacity:.48;transform:translate(-50%,-50%) scale(.91)}to{opacity:.95;transform:translate(-50%,-50%) scale(1.12)}}
+  .stars {position:absolute;z-index:0;inset:0;pointer-events:none;opacity:.53;background-image:
+    radial-gradient(1px 1px at 12% 18%,#c9b3ff 99%,transparent),radial-gradient(1px 1px at 20% 7%,#ffcfef 99%,transparent),
+    radial-gradient(1px 1px at 73% 13%,#b9ebff 99%,transparent),radial-gradient(1px 1px at 87% 23%,#efbfff 99%,transparent),
+    radial-gradient(1px 1px at 92% 9%,#acccff 99%,transparent),radial-gradient(1px 1px at 8% 39%,#e5bbff 99%,transparent),
+    radial-gradient(1px 1px at 68% 29%,#b7edff 99%,transparent)}
+  .sun {position:absolute;z-index:1;left:50%;top:37.5%;transform:translate(-50%,-50%);
+    width:min(42vh,35vw,440px);height:auto;overflow:visible;opacity:.89;pointer-events:none;
+    filter:drop-shadow(0 0 24px rgba(255,93,174,.36))}
+  #landscape {position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;z-index:2}
+  .clock {position:absolute;z-index:4;left:50%;top:37.5%;transform:translate(-50%,-50%);
+    width:min(55vh,45vw,580px);height:auto;overflow:visible}
+  .hands-line {stroke-linecap:round;fill:none}
+  .hour {stroke:#ffe7fa;stroke-width:5.1}
+  .minute {stroke:#f3dfff;stroke-width:3.2}
+  .second {stroke:#78f7ff;stroke-width:1.9}
+  .readout {position:absolute;z-index:5;top:75%;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.3vh,15px);
+    white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums;user-select:none}
+  .weekday {font-size:clamp(10px,1.02vw,15px);letter-spacing:.56em;margin-right:-.56em;color:#ffc4e9;font-weight:600;text-shadow:0 0 9px #ff6bbd77,0 0 19px #ef48b345}
+  .divider {width:clamp(100px,12vw,178px);height:1px;background:linear-gradient(90deg,transparent,#fa69d2b5,transparent);box-shadow:0 0 12px #ed5ac477}
+  .date {font-size:clamp(10px,1.04vw,15px);letter-spacing:.25em;margin-right:-.25em;color:#e1b4e4;text-shadow:0 0 10px #db79e365}
+  .time {font-size:clamp(26px,3.45vw,60px);font-weight:500;letter-spacing:.12em;color:#fff0ff;text-shadow:0 0 10px #fe8de36b,0 0 29px #ed55d338}
+  .ampm {font-size:.30em;color:#efb5e9;margin-left:.55em;vertical-align:middle;font-weight:400;letter-spacing:.1em}
+  @media(max-aspect-ratio:4/5){.sun{width:min(42vh,65vw)}.clock{width:min(53vh,84vw)}.readout{top:74%}.time{font-size:clamp(22px,6vw,38px)}}
+  @media(max-height:500px){.sun{width:min(40vh,32vw)}.clock{width:min(52vh,44vw)}.readout{top:76%;gap:5px}.weekday,.date{font-size:10px}.time{font-size:clamp(19px,3vw,28px)}}
+  @media(prefers-reduced-motion:reduce){.aura{animation:none}}
+</style>
+</head>
+<body>
+<div class="scene" id="scene">
+  <div class="sky"></div><div class="aura"></div><div class="stars"></div>
+  <svg class="sun" viewBox="0 0 400 400" aria-hidden="true">
+    <defs>
+      <linearGradient id="sun-color" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffe1a5"/><stop offset=".36" stop-color="#ff9b9f"/>
+        <stop offset=".7" stop-color="#ff4caa"/><stop offset="1" stop-color="#9f3fe0"/>
+      </linearGradient>
+      <clipPath id="sun-circle"><circle cx="200" cy="200" r="189"/></clipPath>
+      <mask id="sun-stripes" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="400">
+        <rect width="400" height="214" fill="white"/>
+        <rect y="223" width="400" height="24" fill="white"/>
+        <rect y="256" width="400" height="18" fill="white"/>
+        <rect y="285" width="400" height="13" fill="white"/>
+        <rect y="308" width="400" height="9" fill="white"/>
+        <rect y="328" width="400" height="6" fill="white"/>
+        <rect y="346" width="400" height="4" fill="white"/>
+        <rect y="361" width="400" height="3" fill="white"/>
+        <rect y="375" width="400" height="2" fill="white"/>
+      </mask>
+    </defs>
+    <g clip-path="url(#sun-circle)"><rect width="400" height="400" fill="url(#sun-color)" mask="url(#sun-stripes)"/></g>
+  </svg>
+  <canvas id="landscape" aria-hidden="true"></canvas>
+  <svg class="clock" viewBox="0 0 320 320" role="img" aria-label="Live analog clock with glowing hands">
+    <defs>
+      <filter id="soft-bloom" filterUnits="userSpaceOnUse" x="0" y="0" width="320" height="320" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="3.2"/></filter>
+      <filter id="near-bloom" filterUnits="userSpaceOnUse" x="0" y="0" width="320" height="320" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="1.75"/></filter>
+    </defs>
+    <g id="glow-ticks" filter="url(#near-bloom)"></g>
+    <g id="tickmarks"></g>
+    <g id="hhand">
+      <line x1="160" y1="172" x2="160" y2="99" stroke="#ff4ab8" stroke-width="12" opacity=".22" filter="url(#soft-bloom)" class="hands-line"/>
+      <line x1="160" y1="172" x2="160" y2="99" stroke="#ffb0e3" stroke-width="7" opacity=".38" filter="url(#near-bloom)" class="hands-line"/>
+      <line x1="160" y1="172" x2="160" y2="99" class="hands-line hour"/>
+    </g>
+    <g id="mhand">
+      <line x1="160" y1="177" x2="160" y2="57" stroke="#bd7bff" stroke-width="10.5" opacity=".22" filter="url(#soft-bloom)" class="hands-line"/>
+      <line x1="160" y1="177" x2="160" y2="57" stroke="#e4baff" stroke-width="6" opacity=".37" filter="url(#near-bloom)" class="hands-line"/>
+      <line x1="160" y1="177" x2="160" y2="57" class="hands-line minute"/>
+    </g>
+    <g id="shand">
+      <line x1="160" y1="190" x2="160" y2="40" stroke="#18d9ff" stroke-width="8.5" opacity=".26" filter="url(#soft-bloom)" class="hands-line"/>
+      <line x1="160" y1="190" x2="160" y2="40" stroke="#81efff" stroke-width="4.5" opacity=".40" filter="url(#near-bloom)" class="hands-line"/>
+      <line x1="160" y1="190" x2="160" y2="40" class="hands-line second"/>
+    </g>
+    <circle cx="160" cy="160" r="7" fill="#8addff" opacity=".25" filter="url(#soft-bloom)"/>
+    <circle cx="160" cy="160" r="4" fill="#fff7ff"/>
+  </svg>
+  <div class="readout">
+    <div class="weekday" id="weekday">TUESDAY</div>
+    <div class="divider"></div>
+    <div class="date" id="date">NOVEMBER 17, 2026</div>
+    <div class="time" id="time">10:33:00<span class="ampm">AM</span></div>
+  </div>
+</div>
+<script>
+(() => {
+  const scene = document.getElementById('scene');
+  const baseCanvas = document.getElementById('landscape');
+  const c = baseCanvas.getContext('2d', {alpha:true});
+  const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const ns = 'http://www.w3.org/2000/svg';
+  const ticks = document.getElementById('tickmarks');
+  const glowTicks = document.getElementById('glow-ticks');
+  for(let i=0;i<60;i++){
+    const a=i*Math.PI/30, major=i%5===0, r1=major?130:138,r2=major?143:142;
+    for(const [node,glow] of [[ticks,false],[glowTicks,true]]){
+      if(glow && !major && i%2)continue;
+      const line=document.createElementNS(ns,'line');
+      for(const [attr,value] of Object.entries({x1:160+Math.sin(a)*r1,y1:160-Math.cos(a)*r1,x2:160+Math.sin(a)*r2,y2:160-Math.cos(a)*r2,
+        stroke:major?'#ffc4eb':'#bb8bd8','stroke-width':glow?(major?3.0:1.6):(major?1.8:.85),opacity:glow?(major?.40:.16):(major?.84:.31),'stroke-linecap':'round'}))line.setAttribute(attr,value);
+      node.appendChild(line);
+    }
+  }
+  const hands=['hhand','mhand','shand'].map(id=>document.getElementById(id));
+  const day=document.getElementById('weekday'),date=document.getElementById('date'),time=document.getElementById('time');
+  const dayFmt=new Intl.DateTimeFormat(undefined,{weekday:'long'}),dateFmt=new Intl.DateTimeFormat(undefined,{month:'long',day:'numeric',year:'numeric'});
+  const pad=n=>String(n).padStart(2,'0');
+  let W=0,H=0,baseDPR=1,lastPaint=-1,lastSecond=-1;
+
+  // Tunable scenery: speed is deliberately relaxed for a wallpaper.
+  const CONFIG={
+    speed:.73,                 // v10: 1.76; now about 59% slower
+    radius:90,                 // spherical surface radius in world units
+    eye:1.14,                 // viewing height above the spherical surface
+    visibleHorizon:.645,      // central, visible crest of the planet
+    near:1.9,
+    gridSpacing:1.75,
+    meshSpacing:1.35,
+    terrainDistance:62,
+    valleyHalf:4.85,
+    mountainX:[0,.8,1.65,2.6,3.65,4.85,6.2,7.75,9.6,11.9],
+  };
+  const tangentDist=Math.sqrt(2*CONFIG.radius*CONFIG.eye+CONFIG.eye*CONFIG.eye);
+  const noise1=x=>{const a=Math.sin(x*127.1+23.71)*43758.5453;return a-Math.floor(a)};
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  function smoothNoise(x){const k=Math.floor(x),f=x-k,q=f*f*(3-2*f);return lerp(noise1(k),noise1(k+1),q)}
+  const fy=()=>H*.83,fx=()=>W*.86;
+  const optics=()=>H*CONFIG.visibleHorizon-fy()*(2*CONFIG.eye+CONFIG.eye*CONFIG.eye/CONFIG.radius)/tangentDist;
+  // Every horizon pixel is derived from the same sphere as the floor/grid geometry.
+  function visibleHorizonY(sx){const slope=(sx-W/2)/fx();const d=tangentDist/Math.sqrt(1+slope*slope);
+    const x=d*slope,z=d;
+    const surface=-CONFIG.radius+Math.sqrt(Math.max(0,CONFIG.radius*CONFIG.radius-x*x-z*z));
+    return optics()+fy()*(CONFIG.eye-surface)/z;
+  }
+  function surfaceY(x,z){const dist2=x*x+z*z;if(dist2>=CONFIG.radius*CONFIG.radius)return -CONFIG.radius;
+    return Math.sqrt(CONFIG.radius*CONFIG.radius-dist2)-CONFIG.radius;}
+  function occluded(x,y,z){ // physically block objects concealed by the spherical surface
+    const dy=y-CONFIG.eye,A=x*x+dy*dy+z*z;
+    const B=2*(CONFIG.radius+CONFIG.eye)*dy;
+    const C=CONFIG.eye*(2*CONFIG.radius+CONFIG.eye);
+    const disc=B*B-4*A*C;
+    if(disc<=0)return false;
+    const hit=(-B-Math.sqrt(disc))/(2*A);
+    return hit>0.001 && hit<.996;
+  }
+  function project(x,alt,z){
+    if(z<.05)return null;
+    const ground=surfaceY(x,z);
+    const worldY=ground+alt;
+    if(occluded(x,worldY,z))return null;
+    return {x:W/2+fx()*x/z,y:optics()+fy()*(CONFIG.eye-worldY)/z,z};
+  }
+  function line(ctx,a,b,color,width=1){if(!a||!b)return;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke()}
+  function curvePath(ctx,pts){let drawing=false;ctx.beginPath();for(const p of pts){if(p){if(!drawing)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);drawing=true}else drawing=false}}
+  function horizonPath(ctx,offset=0){ctx.beginPath();ctx.moveTo(0,H+4);ctx.lineTo(0,visibleHorizonY(0)+offset);
+    for(let i=1;i<=105;i++){const sx=W*i/105;ctx.lineTo(sx,visibleHorizonY(sx)+offset)}
+    ctx.lineTo(W,H+4);ctx.closePath()}
+  // Each line's bloom and bright center are drawn in *the same depth pass*.
+  // Near terrain later covers the blurred light from any objects behind it.
+  function neonStroke(ctx,pts,color,width,glowColor,glowWidth,shadow=5){
+    if(!pts || pts.length<2)return;
+    ctx.save();ctx.lineJoin='round';ctx.lineCap='round';
+    curvePath(ctx,pts);
+    ctx.strokeStyle=glowColor;ctx.lineWidth=glowWidth;
+    ctx.shadowBlur=shadow;ctx.shadowColor=glowColor;ctx.stroke();
+    ctx.shadowBlur=0;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
+    ctx.restore();
+  }
+  function drawGround(cameraZ){
+    // Both the physical horizon and the grid get the same spherical mask.
+    c.save();horizonPath(c,-1.3);c.clip();
+    const fill=c.createLinearGradient(0,H*.63,0,H);
+    fill.addColorStop(0,'#682748');fill.addColorStop(.09,'#39143d');fill.addColorStop(.35,'#210d30');fill.addColorStop(1,'#0a061a');
+    c.fillStyle=fill;c.fillRect(0,0,W,H);
+    const firstZ=Math.floor((cameraZ+CONFIG.near)/CONFIG.gridSpacing)*CONFIG.gridSpacing;
+    for(let worldZ=firstZ;worldZ<=cameraZ+tangentDist+2;worldZ+=CONFIG.gridSpacing){
+      const z=worldZ-cameraZ;if(z<CONFIG.near)continue;
+      const pts=[];for(let i=0;i<=115;i++){const xp=(i/115-.5)*W*2.7;pts.push(project(xp*z/fx(),0,z))}
+      const close=Math.min(1,6/z);
+      neonStroke(c,pts,`rgba(255,92,207,${(.27+close*.28).toFixed(3)})`,.95+close*.20,
+        `rgba(255,43,176,${(.15+close*.13).toFixed(3)})`,2.6+close*.55,5.4);
+    }
+    for(let k=-23;k<=23;k++){
+      const x=k*.92,pts=[];
+      for(let i=0;i<=130;i++){
+        const z=CONFIG.near+(tangentDist+1-CONFIG.near)*(i/130);
+        pts.push(project(x,0,z));
+      }
+      const cyan=k%3===0;
+      neonStroke(c,pts,cyan?'rgba(95,224,255,.45)':'rgba(161,108,250,.36)',cyan?1.05:.88,
+        cyan?'rgba(37,198,255,.21)':'rgba(140,72,255,.16)',cyan?3.1:2.7,5);
+    }
+    c.restore();
+    // Single luminous skyline drawn AFTER the masked ground.
+    const ridge=[];for(let i=0;i<=110;i++){let x=W*i/110;ridge.push({x,y:visibleHorizonY(x)})}
+    neonStroke(c,ridge,'rgba(255,114,212,.48)',1.15,'rgba(255,75,189,.19)',2.9,5.8);
+  }
+  // Multi-scale mountain noise: long dramatic ridges plus small individual facets.
+  function terrain(side,x,z){
+    const off=Math.max(0,Math.abs(x)-CONFIG.valleyHalf);
+    if(off<=0)return 0;
+    const s=side===-1?19.17:7.48;
+    const long=smoothNoise(z*.091+s);
+    const medium=smoothNoise(z*.23+s*1.31+off*.12);
+    const sharp=smoothNoise(z*.36+s*.73+off*.19);
+    const ridge=Math.pow(Math.max(0,(smoothNoise(z*.14+s*2.01+off*.16)-.24)/.76),2.25);
+    const saddle=Math.pow(1-smoothNoise(z*.175+s*2.4),3);
+    // Two moving diagonal ridgelines introduce tall peaks *and* deep saddles,
+    // instead of simply making the whole mountain slope uniformly steeper.
+    const diagonal=off*1.34+z*.23+s*1.72;
+    const serration=Math.pow(Math.max(0,Math.sin(diagonal)),4);
+    const doublePeak=Math.pow(Math.max(0,Math.sin(off*2.13-z*.14+s*.8)),5);
+    const relief=Math.max(.09,.18+long*.23+medium*.18+ridge*1.35+serration*2.15+doublePeak*.56+sharp*.13-saddle*.49);
+    const raw=Math.pow(off,.91)*.93*relief;
+    // A smooth ceiling stops near-side cliffs from eating the whole sky.
+    return 7.1*(1-Math.exp(-raw/7.1));
+  }
+  // Perspective triangle clipping against the curved planet. Unlike v11, a triangle
+  // is not dropped just because one vertex is below the horizon. Its visible part
+  // is clipped at the true sphere silhouette and stays connected to adjacent faces.
+  function geoPoint(side,offset,z,worldZ){
+    const x=side*(CONFIG.valleyHalf+offset);
+    return {x,z,alt:terrain(side,x,worldZ)};
+  }
+  function isVisible(v){
+    if(v.z<=.08)return false;
+    return !occluded(v.x,surfaceY(v.x,v.z)+v.alt,v.z);
+  }
+  function mixPoint(a,b,t){return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,alt:a.alt+(b.alt-a.alt)*t};}
+  function edgeClip(a,b,aVisible){
+    let lo=0,hi=1;
+    for(let k=0;k<17;k++){
+      const mid=(lo+hi)*.5;
+      if(isVisible(mixPoint(a,b,mid))===aVisible)lo=mid;else hi=mid;
+    }
+    return mixPoint(a,b,(lo+hi)*.5);
+  }
+  function clipPoly(points){
+    const output=[];
+    for(let i=0;i<points.length;i++){
+      const a=points[i],b=points[(i+1)%points.length],av=isVisible(a),bv=isVisible(b);
+      if(av&&bv)output.push(b);
+      else if(av&&!bv)output.push(edgeClip(a,b,true));
+      else if(!av&&bv){output.push(edgeClip(a,b,false));output.push(b)}
+    }
+    return output;
+  }
+  function screen(v){
+    return {x:W*.5+fx()*v.x/v.z,
+      y:optics()+fy()*(CONFIG.eye-(surfaceY(v.x,v.z)+v.alt))/v.z};
+  }
+  function triangle3D(a,b,d,fill){
+    const poly=clipPoly([a,b,d]);if(poly.length<3)return;
+    c.beginPath();const first=screen(poly[0]);c.moveTo(first.x,first.y);
+    for(let i=1;i<poly.length;i++){const p=screen(poly[i]);c.lineTo(p.x,p.y)}
+    c.closePath();c.fillStyle=fill;c.fill();
+  }
+  function edge3D(a,b,stroke,alpha,shadowColor,emphasis=false){
+    if(!a||!b)return;
+    const av=isVisible(a),bv=isVisible(b);if(!av&&!bv)return;
+    let first=a,second=b;
+    if(av&&!bv)second=edgeClip(a,b,true);
+    else if(!av&&bv)first=edgeClip(a,b,false);
+    const p=screen(first),q=screen(second);
+    c.save();c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);
+    c.lineCap='round';c.strokeStyle=shadowColor;c.globalAlpha=alpha;
+    c.lineWidth=emphasis?3.4:2.9;c.shadowBlur=emphasis?9:7.2;c.shadowColor=shadowColor;c.stroke();
+    c.shadowBlur=0;c.globalAlpha=1;c.lineWidth=emphasis?1.35:.76;
+    c.strokeStyle=stroke;c.stroke();c.restore();
+  }
+  function drawMountains(cameraZ){
+    const step=CONFIG.meshSpacing;
+    const start=Math.floor((cameraZ+CONFIG.near)/step)*step;
+    const end=cameraZ+CONFIG.terrainDistance;
+    const offsets=CONFIG.mountainX;
+    for(let wz=Math.floor(end/step)*step;wz>=start;wz-=step){
+      const z=wz-cameraZ;
+      for(const side of [-1,1]){
+        const A=offsets.map(off=>geoPoint(side,off,z,wz));
+        const B=offsets.map(off=>geoPoint(side,off,z+step,wz+step));
+        const colors=side<0?['#261039','#2a1040','#341544','#211033']:['#0b2639','#0d2b40','#102940','#102236'];
+        const stroke=side<0?'rgba(255,123,226,.60)':'rgba(93,217,255,.61)';
+        const halo=side<0?'rgba(242,62,193,.28)':'rgba(47,187,247,.28)';
+        for(let j=offsets.length-2;j>=0;j--){
+          const a=A[j],b=A[j+1],d=B[j],e=B[j+1],k=Math.floor(wz/step)*17+j*7+(side+1)*11;
+          // Draw the diagonal belonging to the two filled triangles. V12 filled
+          // along a→e but sometimes outlined b→d, making stray floating lines.
+          if(k%2===0){
+            triangle3D(a,b,e,colors[Math.abs(k)%4]);
+            triangle3D(a,e,d,colors[Math.abs(k+1)%4]);
+            edge3D(a,e,stroke,.65,halo);
+          }else{
+            triangle3D(a,b,d,colors[Math.abs(k)%4]);
+            triangle3D(b,e,d,colors[Math.abs(k+1)%4]);
+            edge3D(b,d,stroke,.65,halo);
+          }
+          edge3D(a,b,stroke,.8,halo);
+          edge3D(a,d,stroke,.8,halo);
+        }
+        // Surface ridge receives a small extra glow but remains behind nearer facets.
+        for(let j=0;j<A.length-1;j++){
+          edge3D(A[j],A[j+1],side<0?'rgba(255,153,232,.81)':'rgba(132,230,255,.82)',
+             .92,side<0?'rgba(249,72,196,.25)':'rgba(73,208,255,.25)',true);
+        }
+      }
+    }
+  }
+  // Footline follows the same visible curved surface as the floor.
+  // The gradient fades toward the center opening rather than forming a hard wall.
+  function drawMountainFootline(){
+    for(const side of [-1,1]){
+      const start=side<0?0:W*.675;
+      const end=side<0?W*.325:W;
+      const grad=c.createLinearGradient(start,0,end,0);
+      if(side<0){grad.addColorStop(0,'rgba(252,112,222,.47)');grad.addColorStop(1,'rgba(252,112,222,0)')}
+      else{grad.addColorStop(0,'rgba(69,216,255,0)');grad.addColorStop(1,'rgba(69,216,255,.47)')}
+      const pts=[];
+      for(let i=0;i<=60;i++){
+        const x=start+(end-start)*(i/60);
+        pts.push({x,y:visibleHorizonY(x)+1.5});
+      }
+      c.save();c.beginPath();c.moveTo(pts[0].x,pts[0].y);
+      for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);
+      c.strokeStyle=grad;c.lineWidth=1.35;
+      c.shadowBlur=5;c.shadowColor=side<0?'rgba(255,71,198,.34)':'rgba(54,209,253,.34)';
+      c.stroke();c.restore();
+    }
+  }
+  function drawScene(ts){
+    c.clearRect(0,0,W,H);
+    const t=prefersReducedMotion.matches?0:ts*.001;
+    const cameraZ=t*CONFIG.speed;
+    drawGround(cameraZ);
+    drawMountains(cameraZ);
+    drawMountainFootline();
+  }
+  function resize(){const rect=scene.getBoundingClientRect();W=rect.width;H=rect.height;
+    baseDPR=Math.min(devicePixelRatio||1,1.5);
+    baseCanvas.width=Math.max(1,Math.round(W*baseDPR));baseCanvas.height=Math.max(1,Math.round(H*baseDPR));
+    c.setTransform(baseDPR,0,0,baseDPR,0,0);
+    drawScene(lastPaint<0?0:lastPaint);
+  }
+  addEventListener('resize',resize,{passive:true});resize();
+  function frame(ts){
+    const now=new Date(),s=now.getSeconds()+now.getMilliseconds()/1000,m=now.getMinutes()+s/60,h=now.getHours()%12+m/60;
+    hands[0].setAttribute('transform',`rotate(${h*30} 160 160)`);
+    hands[1].setAttribute('transform',`rotate(${m*6} 160 160)`);
+    hands[2].setAttribute('transform',`rotate(${s*6} 160 160)`);
+    if(now.getSeconds()!==lastSecond){lastSecond=now.getSeconds();day.textContent=dayFmt.format(now).toUpperCase();date.textContent=dateFmt.format(now).toUpperCase();
+      time.innerHTML=`${now.getHours()%12||12}:${pad(now.getMinutes())}:${pad(now.getSeconds())}<span class="ampm">${now.getHours()<12?'AM':'PM'}</span>`}
+    if(ts-lastPaint>40){drawScene(ts);lastPaint=ts} // capped near 24 fps; hands animate at display refresh rate
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

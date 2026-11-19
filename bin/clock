@@ -1,0 +1,283 @@
+#!/bin/bash
+# AmbientClock: curated, dependency-free macOS terminal wallpaper switcher.
+# Compatible with macOS's stock Bash 3.2.
+set -euo pipefail
+
+# The command is usually a symlink in ~/.local/bin. Resolve the symlink so
+# it can be run from ANY working directory without a fixed $HOME path.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  LINK_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+  TARGET="$(readlink "$SCRIPT_PATH")"
+  if [[ "$TARGET" = /* ]]; then SCRIPT_PATH="$TARGET"; else SCRIPT_PATH="$LINK_DIR/$TARGET"; fi
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+ROOT="${AMBIENT_CLOCK_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+ACTIVE="$ROOT/index.html"
+STATE="$ROOT/.clock-current"
+
+# ----------------- Explicit catalog: no folder autodiscovery ----------------
+RETRO_IDS=(
+  synthwave metropolis metropolis-abyssal chronotron chronotron-fallout
+  starliner starliner-derelict blackhole blackhole-v2
+)
+QUIET_IDS=(forest nebula alpine ocean aurora rain)
+ALL_IDS=("${RETRO_IDS[@]}" "${QUIET_IDS[@]}")
+
+# To add a clock: add its ID above, one metadata entry below, and (optional)
+# aliases to canonical_id(). The folder names must match the repository.
+# clock_meta sets COLLECTION, FOLDER, DISPLAY.
+clock_meta() {
+  COLLECTION='' FOLDER='' DISPLAY=''
+  case "$1" in
+    synthwave)          COLLECTION=retro; FOLDER=01-Synthwave-Neon-Horizon-Final; DISPLAY='Neon Horizon — Synthwave' ;;
+    metropolis)         COLLECTION=retro; FOLDER=02-Metropolis-Classic; DISPLAY='Metropolis — Classic' ;;
+    metropolis-abyssal) COLLECTION=retro; FOLDER=03-Metropolis-Abyssal; DISPLAY='Metropolis — Abyssal' ;;
+    chronotron)         COLLECTION=retro; FOLDER=04-Chronotron-Classic; DISPLAY='Chronotron — Classic' ;;
+    chronotron-fallout) COLLECTION=retro; FOLDER=05-Chronotron-Atomic-Wasteland; DISPLAY='Chronotron — Atomic Wasteland' ;;
+    starliner)          COLLECTION=retro; FOLDER=06-Starliner-07-Classic; DISPLAY='Starliner 07 — Classic' ;;
+    starliner-derelict) COLLECTION=retro; FOLDER=07-Starliner-07-Derelict; DISPLAY='Starliner 07 — Derelict' ;;
+    blackhole)          COLLECTION=retro; FOLDER=08-Black-Hole-Original; DISPLAY='Event Horizon — Original' ;;
+    blackhole-v2)       COLLECTION=retro; FOLDER=09-Black-Hole-V2-Final; DISPLAY='Event Horizon — V2' ;;
+    forest)             COLLECTION=quiet; FOLDER=01-Forest-Canopy; DISPLAY='Forest Canopy' ;;
+    nebula)             COLLECTION=quiet; FOLDER=02-Nebula-Drift; DISPLAY='Nebula Drift' ;;
+    alpine)             COLLECTION=quiet; FOLDER=03-Alpine-Trail; DISPLAY='Alpine Trail' ;;
+    ocean)              COLLECTION=quiet; FOLDER=04-Ocean-Tide; DISPLAY='Ocean Tide' ;;
+    aurora)             COLLECTION=quiet; FOLDER=05-Aurora-Night; DISPLAY='Aurora Night' ;;
+    rain)               COLLECTION=quiet; FOLDER=06-Rainy-Window; DISPLAY='Rainy Window' ;;
+    *) return 1 ;;
+  esac
+}
+
+normalize() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr ' _' '--'
+}
+canonical_id() {
+  case "$(normalize "$1")" in
+    synthwave|neon|neon-horizon|outrun) echo synthwave ;;
+    metropolis|metropolis-classic|deco) echo metropolis ;;
+    metropolis-abyssal|bioshock|abyssal|metropolis-bioshock) echo metropolis-abyssal ;;
+    chronotron|chronotron-classic|atomic) echo chronotron ;;
+    chronotron-fallout|fallout|atomic-wasteland|chronotron-wasteland) echo chronotron-fallout ;;
+    starliner|starliner-07|starliner-classic|rocket) echo starliner ;;
+    starliner-derelict|derelict|horror|deadspace|starliner-horror) echo starliner-derelict ;;
+    blackhole|black-hole|event-horizon|blackhole-original) echo blackhole ;;
+    blackhole-v2|black-hole-v2|gargantua|blackhole-final) echo blackhole-v2 ;;
+    forest|forest-canopy|canopy) echo forest ;;
+    nebula|nebula-drift|galaxy|cosmos) echo nebula ;;
+    alpine|alpine-trail|mountains|outdoors) echo alpine ;;
+    ocean|ocean-tide|ocean-tides|lighthouse|tide) echo ocean ;;
+    aurora|aurora-night|northern-lights) echo aurora ;;
+    rain|rainy|rainy-window) echo rain ;;
+    *) return 1 ;;
+  esac
+}
+collection_title() {
+  case "$1" in retro) printf 'Retro-Futurist' ;; quiet) printf 'Quiet Worlds' ;; esac
+}
+source_for() {
+  clock_meta "$1" || return 1
+  local path="$ROOT/collections/$( [ "$COLLECTION" = retro ] && echo retro-futurist || echo quiet-worlds )/$FOLDER/index.html"
+  [ -f "$path" ] || return 1
+  printf '%s\n' "$path"
+}
+
+reload_plash() {
+  if [ "${CLOCK_SKIP_RELOAD:-0}" = 1 ]; then
+    printf 'Plash reload skipped (CLOCK_SKIP_RELOAD=1).\n'
+    return 0
+  fi
+  if ! command -v open >/dev/null 2>&1; then
+    printf 'Plash reload only works on macOS. Wallpaper has still been selected.\n' >&2
+    return 0
+  fi
+  if open -g 'plash:reload' >/dev/null 2>&1; then
+    printf 'Plash reloaded.\n'
+  else
+    printf 'Could not reload Plash automatically. In Terminal run: open -g '\''plash:reload'\''\n' >&2
+  fi
+}
+
+active_id() {
+  local id candidate
+  [ -f "$ACTIVE" ] || return 1
+  for id in "${ALL_IDS[@]}"; do
+    candidate="$(source_for "$id" || true)"
+    if [ -n "$candidate" ] && cmp -s "$candidate" "$ACTIVE"; then
+      printf '%s\n' "$id"
+      return 0
+    fi
+  done
+  return 1
+}
+
+show_current() {
+  local id
+  id="$(active_id || true)"
+  if [ -n "$id" ]; then
+    clock_meta "$id"
+    printf '%s: %s [%s]\n' "$(collection_title "$COLLECTION")" "$DISPLAY" "$id"
+  elif [ -f "$ACTIVE" ]; then
+    printf 'Welcome page or custom wallpaper is active.\n'
+  else
+    printf 'No active index.html found. Run ./install.sh or clock use <name>.\n'
+  fi
+}
+
+show_list_group() {
+  local group="$1" active="$2" id src info
+  local -a ids
+  if [ "$group" = retro ]; then ids=("${RETRO_IDS[@]}"); else ids=("${QUIET_IDS[@]}"); fi
+  printf '\n%s\n' "$(collection_title "$group")"
+  for id in "${ids[@]}"; do
+    clock_meta "$id"
+    src="$(source_for "$id" || true)"
+    info=''
+    if [ -z "$src" ]; then info=' [MISSING]'; fi
+    if [ "$active" = "$id" ]; then info=' [ACTIVE]'; fi
+    printf '  %-22s %s%s\n' "$id" "$DISPLAY" "$info"
+  done
+}
+
+show_list() {
+  local id
+  id="$(active_id || true)"
+  printf 'AmbientClock — %s\n' "$ROOT"
+  show_list_group retro "$id"
+  show_list_group quiet "$id"
+}
+
+use_clock() {
+  local id="$1" source tmp
+  clock_meta "$id" || { printf 'Unknown clock: %s\n' "$id" >&2; return 2; }
+  source="$(source_for "$id" || true)"
+  if [ -z "$source" ]; then
+    printf 'Clock file missing for %s. Check your collections directory.\n' "$id" >&2
+    return 1
+  fi
+  # Atomic replacement: Plash never sees a half-written HTML document.
+  tmp="$(mktemp "$ROOT/.clock-switch.XXXXXX")"
+  trap 'rm -f "$tmp"' EXIT
+  cp "$source" "$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$ACTIVE"
+  trap - EXIT
+  printf '%s\n' "$id" > "$STATE"
+  clock_meta "$id"
+  printf 'Selected: %s / %s\n' "$(collection_title "$COLLECTION")" "$DISPLAY"
+  reload_plash
+}
+
+choose_collection() {
+  local reply
+  while :; do
+    printf '\nChoose a collection:\n'
+    printf '  1) Retro-Futurist  (9 clocks)\n'
+    printf '  2) Quiet Worlds    (6 clocks)\n'
+    printf '  0) Cancel\n\n'
+    printf 'Collection > '
+    IFS= read -r reply || return 1
+    case "$reply" in
+      1|retro|Retro-Futurist) MENU_COLLECTION=retro; return 0 ;;
+      2|quiet|Quiet-Worlds) MENU_COLLECTION=quiet; return 0 ;;
+      0|q|quit|exit) return 1 ;;
+      *) printf 'Choose 1, 2 or 0.\n' ;;
+    esac
+  done
+}
+
+choose_clock() {
+  local group="$1" reply id n src
+  local -a ids
+  if [ "$group" = retro ]; then ids=("${RETRO_IDS[@]}"); else ids=("${QUIET_IDS[@]}"); fi
+  while :; do
+    printf '\n%s\n' "$(collection_title "$group")"
+    n=0
+    for id in "${ids[@]}"; do
+      n=$((n+1))
+      clock_meta "$id"
+      src="$(source_for "$id" || true)"
+      if [ -n "$src" ]; then
+        printf '  %2d) %-35s [%s]\n' "$n" "$DISPLAY" "$id"
+      else
+        printf '  %2d) %-35s [missing file]\n' "$n" "$DISPLAY"
+      fi
+    done
+    printf '   0) Back\n\nClock > '
+    IFS= read -r reply || return 1
+    case "$reply" in
+      0|q|back) return 1 ;;
+    esac
+    if [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#ids[@]}" ]; then
+      MENU_ID="${ids[$((reply-1))]}"
+      src="$(source_for "$MENU_ID" || true)"
+      if [ -n "$src" ]; then return 0; fi
+      printf 'That clock file is missing.\n'
+    else
+      printf 'Choose one of the listed numbers.\n'
+    fi
+  done
+}
+
+show_help() {
+cat <<'HELP'
+AmbientClock — animated wallpapers for Plash
+
+  clock switch              Open collection -> clock terminal menu
+  clock use <clock-name>    Set a wallpaper directly
+  clock list                List all curated clocks
+  clock current             Show the currently selected clock
+  clock reload              Ask Plash to reload the wallpaper
+  clock preview <name>      Open a design in your default browser
+  clock help                Show this help
+
+Quick picks:
+  clock use forest
+  clock use ocean
+  clock use synthwave
+  clock use metropolis-abyssal
+  clock use blackhole-v2
+
+Aliases: bioshock, fallout, horror, galaxy, lighthouse, gargantua, etc.
+The catalog is explicitly defined in bin/clock (not scanned from folders).
+HELP
+}
+
+command_name="${1:-help}"
+case "$command_name" in
+  use)
+    if [ "$#" -lt 2 ]; then printf 'Usage: clock use <name>\n' >&2; exit 2; fi
+    shift
+    id="$(canonical_id "$*" || true)"
+    if [ -z "$id" ]; then
+      printf 'Unknown clock: %s\nRun "clock list" to see valid IDs.\n' "$*" >&2
+      exit 2
+    fi
+    use_clock "$id"
+    ;;
+  switch|menu)
+    if choose_collection; then
+      if choose_clock "$MENU_COLLECTION"; then
+        use_clock "$MENU_ID"
+      else
+        printf 'No change made.\n'
+      fi
+    else
+      printf 'No change made.\n'
+    fi
+    ;;
+  list|ls) show_list ;;
+  current|status) show_current ;;
+  reload) reload_plash ;;
+  preview)
+    if [ "$#" -lt 2 ]; then printf 'Usage: clock preview <name>\n' >&2; exit 2; fi
+    shift
+    id="$(canonical_id "$*" || true)"
+    if [ -z "$id" ]; then printf 'Unknown clock: %s\n' "$*" >&2; exit 2; fi
+    src="$(source_for "$id" || true)"
+    if [ -z "$src" ]; then printf 'Missing clock file for %s\n' "$id" >&2; exit 1; fi
+    if command -v open >/dev/null 2>&1; then open "$src"; else printf '%s\n' "$src"; fi
+    ;;
+  help|-h|--help) show_help ;;
+  *) printf 'Unknown command: %s\n' "$command_name" >&2; show_help >&2; exit 2 ;;
+esac

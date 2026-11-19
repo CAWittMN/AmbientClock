@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#010207">
+<title>Gargantua Study — Gravitationally Lensed Accretion Clock v2.1</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#010207;color:#eeeae3}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
+.scene{position:relative;width:100%;height:100dvh;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,#050508 0%,#020207 34%,#010207 90%);isolation:isolate}
+#space{position:absolute;inset:0;width:100%;height:100%;display:block}
+.time-box{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:min(29vw,360px);min-width:156px;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 7px #000}
+.label{font-size:clamp(8px,.7vw,12px);font-weight:500;letter-spacing:.34em;margin-right:-.34em;color:#8e8b87;text-transform:uppercase}
+.digits{font-size:clamp(27px,3.1vw,51px);font-weight:200;letter-spacing:.025em;color:#f2f0eb;line-height:1.5;text-shadow:0 0 17px #ffffff20}
+.seconds{font-size:.43em;color:#dbd1c1;vertical-align:.12em}.ampm{font-size:.28em;vertical-align:.21em;margin-left:.2em;color:#99938c}
+.rule{width:43%;height:1px;background:linear-gradient(90deg,transparent,#d6b98c55,transparent);margin:4px 0 10px}
+.weekday{font-size:clamp(9px,.9vw,14px);letter-spacing:.32em;margin-right:-.32em;color:#dbc6a7}.date{margin-top:7px;font-size:clamp(8px,.77vw,11px);letter-spacing:.15em;color:#8e8b86}
+.topnote,.bottomnote{position:absolute;z-index:2;left:50%;transform:translateX(-50%);font-size:clamp(8px,.76vw,12px);letter-spacing:.39em;color:#77757d;white-space:nowrap;text-align:center}.topnote{top:6%}.bottomnote{bottom:5.5%;letter-spacing:.3em;color:#696970}
+@media(max-width:700px){.time-box{width:58vw}.topnote{font-size:8px}.bottomnote{font-size:8px}.label{font-size:8px}.date{font-size:8px}}
+</style></head><body>
+<main class="scene" id="scene">
+<canvas id="space" aria-label="Animated black hole, dusty turbulent accretion disk, lensed upper and lower images, and moving gas particles"></canvas>
+<div class="topnote">THE SHAPE OF SPACETIME</div>
+<div class="time-box"><div class="label">LOCAL TIME</div><div id="clock" class="digits">12:00<span class="seconds">:00</span><span class="ampm">PM</span></div><div class="rule"></div><div id="weekday" class="weekday">TUESDAY</div><div id="date" class="date">NOVEMBER 17, 2026</div></div>
+<div class="bottomnote">ACCRETION <span style="color:#bc8e65">·</span> CHRONOMETRY</div>
+</main>
+<script>
+(()=>{
+const scene=document.querySelector('#scene'),cv=document.querySelector('#space'),c=cv.getContext('2d',{alpha:false});
+const tm=document.getElementById('clock'),dy=document.getElementById('weekday'),dt=document.getElementById('date');
+const reduced=matchMedia('(prefers-reduced-motion:reduce)');
+const TWO=Math.PI*2;
+const fract=n=>n-Math.floor(n);
+const hash=n=>fract(Math.sin(n*127.1+41.57)*43758.5453123);
+const mix=(a,b,t)=>a+(b-a)*t;
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+const ease=n=>n*n*(3-2*n);
+const noise=(x,y)=>{const xx=Math.floor(x),yy=Math.floor(y),fx=ease(fract(x)),fy=ease(fract(y));return mix(mix(hash(xx*31+yy*71),hash((xx+1)*31+yy*71),fx),mix(hash(xx*31+(yy+1)*71),hash((xx+1)*31+(yy+1)*71),fx),fy)};
+const grains=[];
+for(let i=0;i<5700;i++){
+ const q=hash(i*11+4);const r=1.09+2.47*Math.pow(q,.72);
+ grains.push({r,theta:hash(i*17+3)*TWO,width:.32+hash(i*13+18)*1.3,alpha:.09+hash(i*7+59)*.37,hue:hash(i*31+12),phase:hash(i*9+22)*TWO,tail:hash(i*29+44),speed:.72+hash(i*19+27)*.4});
+}
+const stars=[];for(let i=0;i<180;i++)stars.push({x:hash(i*7+9),y:hash(i*13+9),s:.22+hash(i*17+24)*1.1,a:.05+hash(i*17+88)*.38});
+let W=0,H=0,cx=0,cy=0,R=0,ratio=1,lastSec=-1,lastPaint=-100,seed=0;
+function resize(){let b=scene.getBoundingClientRect();W=b.width;H=b.height;ratio=Math.min(devicePixelRatio||1,1.4);cv.width=Math.ceil(W*ratio);cv.height=Math.ceil(H*ratio);c.setTransform(ratio,0,0,ratio,0,0);cx=W*.5;cy=H*.45;R=Math.min(W*.116,H*.195,180)}
+// Screen-space projection inspired by gravitational light-bending around an inclined accretion disk.
+// This is an efficient artistic approximation, not numerical Kerr/Schwarzschild geodesic tracing.
+function map(r,a,image){
+ const co=Math.cos(a),si=Math.sin(a),x=R*(image==='underside'?(1.03+.025*(r-1))*co:r*co);
+ const lens=Math.exp(-Math.pow(x/(R*1.63),2));
+ let y;
+ if(image==='back'){
+    y=R*(.155*r*si -(.91+.15*(r-1))*lens);
+ }else if(image==='front'){
+    y=R*(.165*r*si + .09*lens);
+ }else{
+    // The much fainter underside is multiply imaged below the shadow by gravitational lensing.
+    y=R*(.925+.105*Math.sqrt(Math.max(0,1-Math.pow(x/(R*1.14),2)))+.018*(r-1.2));
+ }
+ return{x:cx+x,y:cy+y};
+}
+function boosted(r,a){const toward=(1-Math.cos(a))*.5;const inner=clamp(1-(r-1.08)/2.54,0,1);return{beam:.32+1.36*Math.pow(toward,1.6),inner};}
+function color(r,a,alpha,hot=0){const b=boosted(r,a),bright=clamp(b.beam*(.65+.45*b.inner),0,2);const hue=mix(20,40,clamp(bright/2,0,1))+(1-b.inner)*6-hot*3;const light=clamp(29+30*b.inner+20*(bright-0.4)+hot*12,20,92);return`hsla(${hue.toFixed(1)},${clamp(72+hot*8,62,98).toFixed(0)}%,${light.toFixed(1)}%,${clamp(alpha*bright,0,.85).toFixed(3)})`}
+function background(){
+ c.fillStyle='#010207';c.fillRect(0,0,W,H);
+ const g=c.createRadialGradient(cx,cy,R*.95,cx,cy,R*4.5);g.addColorStop(0,'rgba(47,21,13,.11)');g.addColorStop(.35,'rgba(19,11,13,.10)');g.addColorStop(1,'rgba(1,1,4,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
+ for(const s of stars){const x=s.x*W,y=s.y*H;if(Math.hypot((x-cx)/R,(y-cy)/R)<1.4)continue;c.fillStyle=`rgba(195,201,210,${s.a})`;c.fillRect(x,y,s.s,s.s)}
+}
+function ribbon(image,time){
+ const back=image==='back',under=image==='underside';
+ c.save();c.globalCompositeOperation='screen';
+ // Soft broad dusty disk. All rings are semi-transparent, with gently turbulent thickness.
+ for(let j=110;j>=0;j--){
+  const r=1.12+2.42*j/110;
+  const centerHot=Math.exp(-Math.pow((r-1.5)/.98,2));
+  const begin=back?Math.PI:0, end=back?TWO:Math.PI;
+  const opacity=(under?.028:back?.14:.11)*(.28+.72*centerHot);
+  c.beginPath();
+  const samples=135;
+  for(let k=0;k<=samples;k++){
+   const a=begin+(end-begin)*k/samples;
+   const p=map(r,a,under?'underside':image);
+   p.y+=(noise(r*6+a*2,time*.13)-.5)*R*(under?.004:.013);
+   if(k)c.lineTo(p.x,p.y);else c.moveTo(p.x,p.y);
+  }
+  c.strokeStyle=color(r,Math.PI,opacity,0.05);
+  c.lineWidth=R*(under?.0038:.011)+R*.006*(1-centerHot);
+  c.stroke();
+ }
+ c.restore();
+}
+function filament(image,t){
+ const back=image==='back',under=image==='underside';
+ c.save();c.globalCompositeOperation='screen';
+ for(let band=0;band<80;band++){
+  const r=1.12+band*.03+.014*Math.sin(band*7.1);
+  const segments=100;
+  const begin=back?Math.PI:0,end=back?TWO:Math.PI;
+  for(let seg=0;seg<segments;seg++){
+    const a=begin+(end-begin)*(seg+.12)/segments;
+    const phase=(a+t*.10/Math.pow(r,1.4))*6.8;
+    const v=noise(r*25+Math.cos(phase)*2.1,r*11+Math.sin(phase)*2.1);
+    const whisp=Math.pow(v,3.5);
+    if(whisp<.07)continue;
+    const b=map(r,a,under?'underside':image),e=map(r,a+.014,under?'underside':image);
+    let alpha=(under?.017:.12)*whisp*(.25+.75*Math.exp(-Math.pow((r-1.55)/.83,2)));
+    c.strokeStyle=color(r,a,alpha,.6);c.lineWidth=(.24+.85*whisp)*R/170;
+    c.beginPath();c.moveTo(b.x,b.y);c.lineTo(e.x,e.y);c.stroke();
+  }
+ }
+ c.restore();
+}
+function dust(image,t){
+ const back=image==='back',under=image==='underside';
+ c.save();c.globalCompositeOperation='screen';
+ for(let i=0;i<grains.length;i++){
+   const q=grains[i];const angularSpeed=.10*q.speed/Math.pow(q.r,1.55);
+   const a=(q.theta+t*angularSpeed+TWO)%TWO;
+   const isBack=a>=Math.PI;if(isBack!==back)continue;
+   if(under && i%5!==0)continue;
+   const r=q.r+(noise(q.r*2.5,a*3+t*.05)-.5)*.034;
+   const p=map(r,a,under?'underside':image);
+   // Kepler-like shear: inner streaks run faster, stretching illuminated dust knots along orbit.
+   const v=angularSpeed*(.11+.24*q.tail),p2=map(r,a+v,under?'underside':image);
+   const turbulent=.32+.68*noise(q.r*12+q.phase, a*5-t*.035);
+   let alpha=q.alpha*turbulent*Math.exp(-Math.pow((r-1.73)/1.7,2))*(under?.24:back?1.45:2.10);
+   c.strokeStyle=color(r,a,alpha,q.hue*.55);
+   c.lineWidth=q.width*R/170*(under?.68:1);
+   c.beginPath();c.moveTo(p.x,p.y);c.lineTo(p2.x,p2.y);c.stroke();
+ }
+ c.restore();
+}
+function hotFlow(t){
+ // Warm bright but dusty equatorial lanes. Sharper highlights live inside broad diffused gas, not sharp neon rings.
+ c.save();c.globalCompositeOperation='screen';
+ for(const image of ['back','front']){
+  for(let j=0;j<13;j++){
+    const r=1.12+j*.041;
+    const begin=image==='back'?Math.PI:0,end=image==='back'?TWO:Math.PI;
+    c.beginPath();for(let k=0;k<=180;k++){
+      const a=begin+(end-begin)*k/180,p=map(r,a,image);
+      const y=p.y+(noise(j*.15+a*1.4,t*.04)-.5)*R*.009;
+      if(k)c.lineTo(p.x,y);else c.moveTo(p.x,y);
+    }
+    c.strokeStyle=image==='back'?'rgba(255,189,120,.17)':'rgba(255,159,93,.16)';
+    c.lineWidth=R*.011;c.shadowBlur=R*.12;c.shadowColor='rgba(255,142,72,.34)';c.stroke();
+  }
+ }
+ c.shadowBlur=0;c.restore();
+}
+function shadow(){
+ // Shadow is not the physical event horizon; gravitational lensing magnifies its apparent size.
+ c.save();
+ const g=c.createRadialGradient(cx,cy,R*.83,cx,cy,R*1.18);
+ g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.67,'rgba(2,2,3,.70)');g.addColorStop(1,'rgba(0,0,0,0)');
+ c.fillStyle=g;c.fillRect(cx-R*1.22,cy-R*1.22,R*2.44,R*2.44);
+ c.beginPath();c.arc(cx,cy,R*.99,0,TWO);c.fillStyle='#000103';c.fill();
+ // Thin, multiply imaged light very near the shadow boundary.
+ for(let j=0;j<3;j++){
+  c.beginPath();c.arc(cx,cy,R*(1.011+j*.012),0,TWO);
+  c.strokeStyle=`rgba(243,184,113,${.17/(j+1)})`;c.lineWidth=R*(.004-j*.0008);
+  c.shadowColor='#ffbe72';c.shadowBlur=R*.045;c.stroke();
+ }
+ c.restore();
+}
+function lensingArcs(t){
+ // Secondary narrow arcs are images of far-side emission bent toward the viewer.
+ c.save();c.globalCompositeOperation='screen';
+ for(let i=0;i<6;i++){
+  const r=1.115+i*.032;
+  for(let type of ['back','underside']){
+   c.beginPath();for(let j=0;j<=200;j++){
+    const a=Math.PI+(Math.PI*j/200),p=map(r,a,type);
+    if(j)c.lineTo(p.x,p.y);else c.moveTo(p.x,p.y);
+   }
+   c.lineWidth=R*(type==='back'?.004:.0023);
+   c.strokeStyle=`rgba(255,${type==='back'?211:178},124,${type==='back'?.24:.11})`;
+   c.shadowBlur=R*.06;c.shadowColor='#ffb771';c.stroke();
+  }
+ }
+ c.restore();
+}
+function render(t){background();
+ // Scattering haze behind the disk, then back (lensed) image, faint underside, and near-side disk.
+ c.save();const fog=c.createRadialGradient(cx,cy,R*1.08,cx,cy,R*3.75);fog.addColorStop(0,'rgba(245,138,61,.055)');fog.addColorStop(.55,'rgba(151,69,35,.040)');fog.addColorStop(1,'rgba(0,0,0,0)');c.translate(cx,cy);c.scale(1,.38);c.translate(-cx,-cy);c.fillStyle=fog;c.fillRect(cx-R*4,cy-R*4,R*8,R*8);c.restore();
+ ribbon('back',t);filament('back',t);dust('back',t);
+ ribbon('underside',t);filament('underside',t);dust('underside',t);
+ ribbon('front',t);filament('front',t);dust('front',t);
+ hotFlow(t);shadow();lensingArcs(t);
+}
+function clock(){let d=new Date();if(d.getSeconds()===lastSec)return;lastSec=d.getSeconds();tm.innerHTML=`${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}<span class="seconds">:${String(d.getSeconds()).padStart(2,'0')}</span><span class="ampm">${d.getHours()<12?'AM':'PM'}</span>`;dy.textContent=new Intl.DateTimeFormat('en-US',{weekday:'long'}).format(d).toUpperCase();dt.textContent=new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric'}).format(d).toUpperCase()}
+function frame(ts){clock();if(ts-lastPaint>=40){render(reduced.matches?0:ts*.001);lastPaint=ts}requestAnimationFrame(frame)}
+window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(frame);
+})();
+</script></body></html>

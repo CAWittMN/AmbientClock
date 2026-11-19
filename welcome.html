@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark"><title>AmbientClock · Welcome</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7e7e9;background:#070f15}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:auto;
+background:radial-gradient(ellipse 72% 65% at 48% 42%,#142a37 0%,#08151d 53%,#03080c 100%)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 65px,rgba(117,177,182,.018) 66px 67px);opacity:.9}
+main{width:min(890px,92vw);padding:48px 0 46px;position:relative}header{text-align:center;margin-bottom:34px}
+.eyebrow{font-size:10px;font-weight:650;letter-spacing:.42em;color:#83bbc1}h1{margin:8px 0 8px;font-size:clamp(42px,6.5vw,76px);font-weight:200;letter-spacing:.085em;line-height:1}
+.sub{color:#9bafb7;font-size:14px;line-height:1.6;margin:12px auto 0;max-width:550px}
+.orbit{height:130px;display:grid;place-items:center;position:relative;margin:2px 0 12px}
+.orbit:before,.orbit:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(143,204,204,.16);width:118px;height:118px}
+.orbit:after{width:93px;height:93px;border-color:rgba(172,204,176,.20);box-shadow:0 0 40px rgba(99,172,164,.06)}
+.hand{position:absolute;width:2px;height:39px;top:27px;left:calc(50% - 1px);background:linear-gradient(to top,#cdf0ed,#5eabb6);transform-origin:50% 38px;border-radius:3px;box-shadow:0 0 10px rgba(156,239,233,.28)}
+.minute{height:50px;top:16px;transform-origin:50% 50px;background:linear-gradient(to top,#9cbebc,#e4ffff)}
+.dot{position:relative;width:7px;height:7px;background:#e6fbf5;border-radius:50%;z-index:1;box-shadow:0 0 12px #7beedc}
+#localtime{font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:.25em;color:#b1ced1;margin-top:11px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:29px}
+.step{padding:21px;border:1px solid #273d47;background:rgba(9,23,31,.60);border-radius:14px;min-height:173px}
+.k{font-size:11px;letter-spacing:.25em;color:#80afb6;font-weight:650}.step h2{font-size:17px;font-weight:500;margin:14px 0 9px}.step p{color:#9aaeb8;font-size:13px;line-height:1.6;margin:0 0 10px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,monospace;font-size:12px;color:#d7e9e8;background:#142d36;border:1px solid #294651;border-radius:6px;padding:5px 7px;display:inline-block;max-width:100%;overflow-wrap:anywhere}
+footer{text-align:center;margin-top:26px;color:#607982;letter-spacing:.16em;font-size:11px}
+@media(max-width:660px){main{padding:20px 0}.steps{grid-template-columns:1fr}.step{min-height:auto}.orbit{height:104px}.orbit:before{height:100px;width:100px}.orbit:after{height:84px;width:84px}.hand{top:19px}.minute{top:8px}}
+</style></head><body><main>
+<header><div class="eyebrow">WELCOME TO YOUR DESKTOP</div><h1>AMBIENT<span style="color:#8ec5c4">CLOCK</span></h1>
+<p class="sub">An evolving collection of animated wallpaper clocks. The first scene is yours to choose.</p></header>
+<div class="orbit"><div class="hand" id="hr"></div><div class="hand minute" id="mn"></div><div class="dot"></div></div>
+<div style="text-align:center" id="localtime" aria-label="Local time"></div>
+<div class="steps">
+<section class="step"><div class="k">01 / INSTALL</div><h2>Open iTerm2</h2><p>In the project directory, run the one-time installer:</p><code>bash install.sh</code><p style="margin-top:12px">Then reload your shell: <code>source ~/.zshrc</code></p></section>
+<section class="step"><div class="k">02 / CONNECT</div><h2>Point Plash here</h2><p>Add a <b>Local Website</b> in Plash and choose your AmbientClock repository's root folder (the one containing this page).</p></section>
+<section class="step"><div class="k">03 / EXPLORE</div><h2>Pick a clock</h2><p>Browse two curated collections from your terminal, or switch instantly:</p><code>clock switch</code><p style="margin-top:10px"><code>clock use forest</code></p></section>
+</div><footer>RETRO-FUTURIST &nbsp;·&nbsp; QUIET WORLDS &nbsp;·&nbsp; 15 DESIGNS</footer>
+</main><script>
+(function(){const hr=document.getElementById('hr'), mn=document.getElementById('mn'), out=document.getElementById('localtime');
+function render(){const d=new Date(),sec=d.getSeconds()+d.getMilliseconds()/1000;
+hr.style.transform=`rotate(${(d.getHours()%12+d.getMinutes()/60)*30}deg)`;
+mn.style.transform=`rotate(${(d.getMinutes()+sec/60)*6}deg)`;
+out.textContent=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});}
+render();setInterval(render,1000);})();
+</script></body></html>
