@@ -32,6 +32,7 @@ If you already have Plash pointed at this same root directory, no Plash configur
 | `clock list` | List all 15 designs grouped into collections |
 | `clock current` | Identify the current root wallpaper |
 | `clock reload` | Ask Plash to reload its current wallpaper |
+| `clock update` | Fast-forward `main` and put your current wallpaper back |
 | `clock preview aurora` | Open the original HTML in your default browser |
 | `clock help` | Help and examples |
 
@@ -70,7 +71,7 @@ AmbientClock/
 ├── .gitignore
 ├── install.sh                 # One-time macOS installation
 ├── welcome.html               # Tracked first-run page template
-├── index.html                 # Active wallpaper; generated/ignored by Git
+├── index.html                 # Gallery in Git; local wallpaper after `clock use`
 ├── bin/
 │   └── clock                  # Explicitly curated CLI catalog
 └── collections/
@@ -82,13 +83,14 @@ AmbientClock/
         └── ... 5 more
 ```
 
-**Git detail:** The ZIP includes an initial root `index.html` with setup instructions, but Git deliberately ignores that file. `welcome.html` is the tracked copy. This means `clock use ...` can overwrite `index.html` without making your repo dirty. After a fresh `git clone`, `bash install.sh` recreates it automatically (and does not overwrite an existing active wallpaper).
+**Git detail:** Root `index.html` is the tracked gallery. `clock use` overwrites it for Plash and marks that file with `git update-index --skip-worktree`, so the wallpaper does not show up as a local change. `bash install.sh` saves the committed gallery to `.backup/index.html` (untracked) and does not overwrite an existing wallpaper. `clock update` can run from any directory. It checks `origin/main` first. When there are new commits, it keeps only the clock id from `.clock-current`, puts the gallery back, fast-forwards, then runs the same copy as `clock use <id>` so a wallpaper updated in that pull is what gets installed, and reloads Plash. `.backup/index.html` is the gallery, not a saved wallpaper.
 
 ## What does the installer do?
 
 - Creates a symlink from `~/.local/bin/clock` to this repository's `bin/clock` so Git updates automatically update the command.
 - Saves any previous `~/.local/bin/clock` as a timestamped backup before replacing it.
 - Adds `~/.local/bin` to `~/.zshrc` (only once) and creates a first-run `index.html` if missing.
+- Saves the committed gallery to `.backup/index.html` once, and marks an already-local `index.html` as skip-worktree.
 - Does **not** download dependencies, need `sudo`, or change Plash's selected monitor.
 
 If you move/rename this repository later, run `bash install.sh` again to update the symlink.
@@ -97,7 +99,7 @@ If you move/rename this repository later, run `bash install.sh` again to update 
 
 1. `bin/clock` uses **explicit hardcoded arrays and paths** to define the collections. It does not discover arbitrary folders.
 2. The chosen `collections/.../index.html` is copied atomically to the root `index.html`.
-3. The script saves the selected clock ID to `.clock-current` (ignored by Git).
+3. The script saves the selected clock ID to `.clock-current` (ignored by Git) and, when `index.html` is tracked, marks it skip-worktree.
 4. On macOS, it runs `open -g 'plash:reload'`, using Plash's [documented URL scheme](https://sindresorhus.com/plash).
 
 The source files under `collections/` are never modified. Your chosen background remains the root `index.html` after reboot.

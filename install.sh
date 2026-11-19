@@ -33,6 +33,41 @@ else
   printf 'Kept your existing index.html.\n'
 fi
 
+# One pristine gallery copy, so `clock update` can put it back before pulling.
+# Prefer the committed file when it exists, so a local wallpaper is not saved
+# as the original.
+# True when the file is byte-identical to one of the catalog wallpapers.
+is_catalog_clock() {
+  local f
+  for f in "$ROOT"/collections/*/*/index.html; do
+    if [ -f "$f" ] && cmp -s "$f" "$1"; then return 0; fi
+  done
+  return 1
+}
+
+mkdir -p "$ROOT/.backup"
+if [ -f "$ROOT/.backup/index.html" ]; then
+  printf 'Kept existing .backup/index.html.\n'
+elif git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  && git -C "$ROOT" cat-file -e HEAD:index.html 2>/dev/null; then
+  git -C "$ROOT" show HEAD:index.html > "$ROOT/.backup/index.html"
+  printf 'Backed up the committed index.html to .backup/index.html.\n'
+elif [ -f "$ROOT/index.html" ] && ! is_catalog_clock "$ROOT/index.html"; then
+  # Never back up a wallpaper: the gallery is what `clock update` must restore.
+  cp "$ROOT/index.html" "$ROOT/.backup/index.html"
+  printf 'Backed up index.html to .backup/index.html.\n'
+elif [ -f "$ROOT/index.html" ]; then
+  printf 'index.html is a clock wallpaper and the gallery is not committed yet.\n'
+  printf 'Commit the gallery index.html, then run bash install.sh again to save the backup.\n'
+fi
+
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  && git -C "$ROOT" ls-files --error-unmatch -- index.html >/dev/null 2>&1 \
+  && ! git -C "$ROOT" diff --quiet HEAD -- index.html; then
+  git -C "$ROOT" update-index --skip-worktree -- index.html
+  printf 'Marked your local index.html as skip-worktree.\n'
+fi
+
 # macOS normally starts iTerm2 in zsh; update only once.
 if [ ! -f "$SHELL_RC" ]; then touch "$SHELL_RC"; fi
 if ! grep -Fq '# AmbientClock CLI PATH' "$SHELL_RC"; then

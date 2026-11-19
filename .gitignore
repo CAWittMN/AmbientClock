@@ -1,8 +1,8 @@
-# Plash always loads this active file, rewritten by `clock use`.
-# The tracked welcome.html recreates it on first install.
-/index.html
+# Root index.html is the tracked gallery. `clock use` overwrites it locally
+# and marks it skip-worktree. .backup holds the gallery for `clock update`.
 /.clock-current
 /.clock-switch.*
+/.backup/
 
 # macOS and editor artifacts
 .DS_Store
